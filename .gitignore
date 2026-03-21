@@ -1,0 +1,5 @@
+models_DQN_v01/
+models_DQN_v02/
+__pycache__/
+*.pyc
+.venv/
