@@ -311,5 +311,55 @@ class PyRace2D:
         self.clock.tick(self.game_speed)
 
 
+class PyRace2DV2(PyRace2D):
+    def action(self, action):
+        if action == 0:
+            self.car.speed += 2
+        elif action == 1:
+            self.car.angle += 5
+        elif action == 2:
+            self.car.angle -= 5
+        elif action == 3:
+            self.car.speed -= 2   # brake
+
+        self.car.update()
+        self.car.check_collision()
+        self.car.check_checkpoint()
+
+        self.car.radars.clear()
+        for d in range(-90, 120, 45):
+            self.car.check_radar(d)
+
+    def evaluate(self):
+        reward = 0
+
+        if not self.car.is_alive:
+            return -2000
+
+        if self.car.goal:
+            return 5000
+
+        if self.car.check_flag:
+            self.car.check_flag = False
+            reward += 300
+
+        progress_delta = self.car.prev_distance - self.car.cur_distance
+        reward += 0.5 * progress_delta
+
+        reward -= 0.05
+
+        return reward
+
+    def observe(self):
+        radars = self.car.radars
+        ret = [0.0, 0.0, 0.0, 0.0, 0.0]
+        i = 0
+        for r in radars:
+            ret[i] = r[1] / 20.0
+            i += 1
+
+        return ret
+
+
 def get_distance(p1, p2):
 	return math.sqrt(math.pow((p1[0] - p2[0]), 2) + math.pow((p1[1] - p2[1]), 2))

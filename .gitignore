@@ -1,5 +1,13 @@
-models_DQN_v01/
-models_DQN_v02/
 __pycache__/
 *.pyc
-.venv/
+models_DQN_v01/memory_*.npy
+models_DQN_v02/memory_*.npy
+models_DQN_v01/dqn_*.pth
+models_DQN_v02/dqn_*.pth
+models_DQN_v01/rewards_*.npy
+models_DQN_v02/rewards_*.npy
+!models_DQN_v01/dqn_5000.pth
+!models_DQN_v02/dqn_5000.pth
+!models_DQN_v01/rewards_5000.npy
+!models_DQN_v02/rewards_5000.npy
+ppo_pyrace_v2.zip

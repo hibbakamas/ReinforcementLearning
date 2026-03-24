@@ -19,7 +19,7 @@ except ImportError:
     from tensorflow.keras import layers
     BACKEND = 'keras'
 
-VERSION_NAME = 'DQN_v01'
+VERSION_NAME = 'DQN_v02'
 
 REPORT_EPISODES  = 500
 DISPLAY_EPISODES = 100
@@ -91,9 +91,9 @@ class DQNAgent:
 
         if BACKEND == 'torch':
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            self.model  = build_model_torch(state_size, action_size).to(self.device)
+            self.model = build_model_torch(state_size, action_size).to(self.device)
             self.optimizer = optim.Adam(self.model.parameters(), lr=LEARNING_RATE)
-            self.loss_fn   = nn.MSELoss()
+            self.loss_fn = nn.MSELoss()
         else:
             self.model = build_model_keras(state_size, action_size)
 
@@ -104,6 +104,7 @@ class DQNAgent:
 
     def _predict_best_action(self, state):
         s = np.array(state, dtype=np.float32)
+
         if BACKEND == 'torch':
             with torch.no_grad():
                 t = torch.FloatTensor(s).unsqueeze(0).to(self.device)
@@ -135,6 +136,7 @@ class DQNAgent:
 
         with torch.no_grad():
             best_q = self.model(S2).max(1)[0]
+
         q_target = R + DISCOUNT_FACTOR * best_q * (1 - D)
 
         loss = self.loss_fn(q_pred, q_target)
@@ -152,12 +154,14 @@ class DQNAgent:
 
     def save(self, episode):
         os.makedirs(f'models_{VERSION_NAME}', exist_ok=True)
+
         if BACKEND == 'torch':
             path = f'models_{VERSION_NAME}/dqn_{episode}.pth'
             torch.save(self.model.state_dict(), path)
         else:
             path = f'models_{VERSION_NAME}/dqn_{episode}.keras'
             self.model.save(path)
+
         print(f'Model saved → {path}')
 
     def save_memory(self, episode):
@@ -176,20 +180,25 @@ class DQNAgent:
             path = f'models_{VERSION_NAME}/dqn_{episode}.keras'
             from tensorflow import keras as _k
             self.model = _k.models.load_model(path)
+
         print(f'Model loaded ← {path}')
 
 
 def get_explore_rate(episode):
-    return max(MIN_EXPLORE_RATE,
-               min(MAX_EXPLORE_RATE,
-                   1.0 - math.log10((episode + 1) / DECAY_FACTOR)))
+    return max(
+        MIN_EXPLORE_RATE,
+        min(
+            MAX_EXPLORE_RATE,
+            1.0 - math.log10((episode + 1) / DECAY_FACTOR)
+        )
+    )
 
 
 def simulate(agent, learning=True, episode_start=0):
-    explore_rate  = get_explore_rate(episode_start)
+    explore_rate = get_explore_rate(episode_start)
     total_rewards = []
-    max_reward    = -10_000
-    total_reward  = 0
+    max_reward = -10_000
+    total_reward = 0
     env.set_view(True)
 
     for episode in range(episode_start, NUM_EPISODES + episode_start):
@@ -201,7 +210,7 @@ def simulate(agent, learning=True, episode_start=0):
                 plt.plot(total_rewards)
                 plt.ylabel('rewards')
                 plt.xlabel('episodes')
-                plt.title('DQN v1 Training Rewards')
+                plt.title('DQN v2 Training Rewards')
                 plt.show(block=False)
                 plt.pause(4.0)
                 agent.save(episode)
@@ -222,8 +231,8 @@ def simulate(agent, learning=True, episode_start=0):
             obv, reward, done, _, info = env.step(action)
             next_state = np.array(obv, dtype=np.float32)
 
-            agent.memory.push(state, action, reward, next_state, float(done))
             if learning:
+                agent.memory.push(state, action, reward, next_state, float(done))
                 agent.learn()
 
             total_reward += reward
@@ -231,14 +240,14 @@ def simulate(agent, learning=True, episode_start=0):
 
             if (episode % DISPLAY_EPISODES == 0) or (env.pyrace.mode == 2):
                 env.set_msgs([
-                    'DQN V1 SIMULATE',
+                    'DQN V2 SIMULATE',
                     f'Episode: {episode}',
                     f'Time steps: {t}',
                     f'check: {info["check"]}',
-                    f'dist: {info["dist"]}',
+                    f'dist: {info["dist"]:.2f}',
                     f'crash: {info["crash"]}',
-                    f'Reward: {total_reward:.0f}',
-                    f'Max Reward: {max_reward:.0f}',
+                    f'Reward: {total_reward:.2f}',
+                    f'Max Reward: {max_reward:.2f}',
                     f'Explore: {explore_rate:.3f}',
                     f'Buffer: {len(agent.memory)}'
                 ])
@@ -258,16 +267,20 @@ def load_and_play(agent, episode, learning=False):
 
 
 if __name__ == '__main__':
-    env = gym.make('Pyrace-v1').unwrapped
+    # Part 2 uses the improved environment:
+    # - improved reward shaping
+    # - brake action
+    # - continuous radar observations
+    env = gym.make('Pyrace-v2').unwrapped
     print('env', type(env))
     os.makedirs(f'models_{VERSION_NAME}', exist_ok=True)
 
-    STATE_SIZE  = env.observation_space.shape[0]
+    STATE_SIZE = env.observation_space.shape[0]
     ACTION_SIZE = env.action_space.n
     print(f'State size: {STATE_SIZE}, Action size: {ACTION_SIZE}')
 
     agent = DQNAgent(STATE_SIZE, ACTION_SIZE)
 
     # simulate(agent, learning=True)
-    # load_and_play(agent, 9500, learning=True)
-    load_and_play(agent, 10000, learning=False)
+    # load_and_play(agent, 2500, learning=True)
+    load_and_play(agent, 7000, learning=False)
