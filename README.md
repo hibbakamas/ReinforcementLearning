@@ -1,213 +1,190 @@
-# RLI Assignment 17 – Pit Lane Repairs
-### IE University – Reinforcement Learning Introduction
-**Due: April 7, 2026**
+# Pyrace Assignment – Reinforcement Learning
+
+This repository contains our full implementation for the Pyrace assignment, including:
+
+- **Part 1:** DQN agent on the original environment
+- **Part 2:** Comparison between V1 and V2 environments
+- **Bonus:** PPO experiment using Stable-Baselines3
 
 ---
 
-## Overview
+## Project Overview
 
-This project converts a Q-Table racing agent into a Deep Q-Network (DQN) agent, then improves it through reward engineering and environment modifications. It is split into three parts:
+The goal of this assignment is to train an agent to drive a car in a custom 2D racing environment using reinforcement learning.
 
-| Part | Points | Status |
-|------|--------|--------|
-| Part 1 – Vanilla DQN | 60% | ✅ Done |
-| Part 2 – Improvements + Analysis | 40% | ✅ Done |
-| Bonus – Stable Baselines 3 | +30% | Optional |
-
----
-
-## Project Structure
-
-```
-RLI_17_A0/
-│
-├── Pyrace_RL_DQN.py                      # Part 1 – Vanilla DQN agent
-├── Pyrace_RL_DQN_v2.py                   # Part 2 – Improved DQN agent
-├── Pyrace_DQN_performance_analysis.ipynb # Part 2 – Analysis notebook
-│
-├── gym_race/
-│   └── envs/
-│       ├── __init__.py                   # Registers Pyrace-v1 and Pyrace-v2
-│       ├── race_env.py                   # Gym wrappers (RaceEnv + RaceEnvV2)
-│       ├── pyrace_2d.py                  # Game logic (MODIFIED for Part 2)
-│       └── utils.py                      # Helper functions
-│
-├── models_DQN_v01/                       # Saved checkpoints from Part 1 training
-│   ├── dqn_500.pth                       # Model weights at episode 500
-│   ├── dqn_1000.pth                      # Model weights at episode 1000
-│   ├── memory_500.npy                    # Replay buffer at episode 500
-│   └── ...                              # etc.
-│
-├── models_DQN_v02/                       # Saved checkpoints from Part 2 training
-│   └── ...
-│
-├── race_track_ie.png                     # Track image
-├── car.png                               # Car sprite
-└── README.md                             # This file
-```
+We implemented:
+- A **Deep Q-Network (DQN)** agent
+- An improved version of the environment (V2)
+- A comparison between both versions
+- A bonus PPO experiment
 
 ---
 
-## Part 1 – Vanilla DQN (60 pts)
+## Main files to check
 
-**File:** `Pyrace_RL_DQN.py`
+### 1. Main notebook (MOST IMPORTANT)
 
-Converts the original Q-Table agent (`Pyrace_RL_QTable.py`) into a neural network-based DQN. The network replaces the lookup table with a small MLP (5 inputs → 64 → 64 → 3 outputs).
+**`Pyrace_V1_V2_Comparison_and_Bonus.ipynb`**
 
-**Key changes from Q-Table:**
-- Q-values are approximated by a neural network instead of a table
-- Uses experience replay (replay buffer of 50,000 transitions)
-- Trains on random mini-batches of 64 transitions per step
-- State is still the 5 bucketed radar readings from the original env (`Pyrace-v1`)
+This contains:
+- explanation of Part 1 (baseline DQN)
+- explanation of Part 2 modifications
+- training comparison (plots)
+- evaluation results
+- PPO bonus experiment
+- final conclusions
 
-**What it generates:**
-- `models_DQN_v01/dqn_<episode>.pth` — model weights saved every 500 episodes
-- `models_DQN_v01/memory_<episode>.npy` — replay buffer saved every 500 episodes
+---
 
-### How to run Part 1
+## Part 1 (Baseline DQN)
 
+### Files:
+
+**`Pyrace_RL_DQN.py`**
+
+Contains:
+- DQN agent implementation
+- replay buffer
+- epsilon-greedy exploration
+- training loop (`simulate`)
+- model saving/loading
+
+### Environment used:
+- `Pyrace-v1`
+
+### Key characteristics:
+- discrete radar observations
+- 3 actions:
+  - accelerate
+  - turn left
+  - turn right
+- sparse reward:
+  - large reward for goal
+  - large penalty for crash
+
+---
+
+## Part 2 (V1 vs V2 Comparison)
+
+### Files:
+
+**`Pyrace_RL_DQN_v2.py`**  
+Same DQN structure, but trained on the modified environment.
+
+---
+
+### Environment changes (V2)
+
+Implemented in:
+
+**`gym_race/envs/pyrace_2d.py`**  
+**`gym_race/envs/race_env.py`**
+
+#### Changes:
+
+**Observations**
+- V1: discretized radar values (integers)
+- V2: continuous radar values (floats)
+
+**Actions**
+- V1: 3 actions
+- V2: 4 actions (added brake)
+
+**Reward function (major change)**
+- checkpoint bonus
+- progress-based reward
+- small step penalty
+- crash penalty
+- goal reward
+
+This is the main reason V2 performs better.
+
+---
+
+## Environment structure
+
+### Core files:
+
+**`gym_race/envs/pyrace_2d.py`**
+- car physics
+- radar sensors
+- reward logic
+- V1 and V2 implementations
+
+**`gym_race/envs/race_env.py`**
+- Gym wrapper
+- defines:
+  - `RaceEnv` → V1
+  - `RaceEnvV2` → V2
+
+**`gym_race/__init__.py` + `envs/__init__.py`**
+- environment registration
+- allows:
+  - `gym.make('Pyrace-v1')`
+  - `gym.make('Pyrace-v2')`
+
+---
+
+## Saved training artifacts
+
+We include the 5000-episode checkpoints used in the notebook:
+
+- `models_DQN_v01/dqn_5000.pth`
+- `models_DQN_v01/rewards_5000.npy`
+- `models_DQN_v02/dqn_5000.pth`
+- `models_DQN_v02/rewards_5000.npy`
+
+These are used for:
+- plotting training curves
+- evaluation without retraining
+
+---
+
+## Bonus (PPO)
+
+We also tested a **PPO agent** using Stable-Baselines3.
+
+### What was done:
+- trained PPO on `Pyrace-v2`
+- evaluated using the same evaluation setup
+- compared results against DQN
+
+### Result:
+- PPO improved over V1
+- but did **not outperform V2 DQN**
+
+---
+
+## How to run
+
+### Train V1:
 ```bash
 python Pyrace_RL_DQN.py
 ```
 
-At the bottom of the file, choose one mode:
-
-```python
-simulate(agent, learning=True)              # Train from scratch
-load_and_play(agent, 10000, learning=False) # Watch a saved model play
-load_and_play(agent, 10000, learning=True)  # Continue training from checkpoint
-```
-
----
-
-## Part 2 – Improvements + Analysis (40 pts)
-
-### 2a – Improved Environment
-
-**Modified file:** `gym_race/envs/pyrace_2d.py`
-
-Three improvements were made to the environment:
-
-| Change | Original | Improved |
-|--------|----------|----------|
-| Reward | Sparse (0 every step) | Dense (+1/-1 per step toward checkpoint, +500 per checkpoint) |
-| State inputs | Bucketed integers (÷20) | Continuous floats (raw px ÷ 20.0) |
-| Actions | 3 (accelerate, left, right) | 4 (+ BRAKE) |
-
-The improved environment is registered as `Pyrace-v2` in `__init__.py`.
-
-**Files changed:**
-- `gym_race/envs/pyrace_2d.py` — reward function, observe(), action()
-- `gym_race/envs/race_env.py` — added `RaceEnvV2` class with float observation space and 4 actions
-- `gym_race/envs/__init__.py` — added `Pyrace-v2` registration
-
-### 2b – Improved DQN Agent
-
-**File:** `Pyrace_RL_DQN_v2.py`
-
-Same DQN architecture as Part 1, but trained on `Pyrace-v2` instead of `Pyrace-v1`. Saves to `models_DQN_v02/`.
-
-### How to run Part 2
-
-```bash
+### Train V2:
 python Pyrace_RL_DQN_v2.py
-```
 
-### 2c – Analysis Notebook
+### Run notebook:
 
-**File:** `Pyrace_DQN_performance_analysis.ipynb`
+Open:
 
-Compares the original (v1) and improved (v2) agents side by side:
-1. Learning curves for both agents
-2. Direct normalised comparison plot
-3. Policy heatmaps (greedy action over radar space)
-4. Q-value profiles per radar beam
-5. Summary statistics table
-6. Written discussion of why the improvements worked
+Pyrace_V1_V2_Comparison_and_Bonus.ipynb
 
-**To run the notebook:**
-1. Make sure both training runs have completed and checkpoints exist
-2. Update the episode numbers at the top of the notebook:
-```python
-EPISODE_ORIG = 10000   # your v1 checkpoint
-EPISODE_NEW  = 10000   # your v2 checkpoint
-```
-3. Run all cells top to bottom
-4. Fill in the `[DESCRIBE]` and `[FILL IN]` placeholders with observations from the actual output charts
+### Suggested reading order
+1. Notebook (main explanation)
+2. Pyrace_RL_DQN.py (Part 1)
+3. Pyrace_RL_DQN_v2.py (Part 2)
+4. pyrace_2d.py (environment logic)
+5. race_env.py (Gym wrapper)
 
----
 
-## Bonus – Stable Baselines 3 (optional, +30 pts)
+#### Final conclusions
+- V1 struggled due to sparse rewards and limited actions
+- V2 significantly improved performance due to:
+    - better reward shaping
+    - richer observations
+    - additional control (brake)
+- PPO performed reasonably well but did not exceed V2 DQN
 
-Migrates the improved environment to a more advanced RL algorithm (PPO or DDPG) using the Stable Baselines 3 library.
-
-```bash
-pip install stable-baselines3
-```
-
-Since `Pyrace-v2` is already Gymnasium-compatible, SB3 can be used directly:
-
-```python
-from stable_baselines3 import PPO
-import gymnasium as gym
-import gym_race
-
-env = gym.make("Pyrace-v2")
-model = PPO("MlpPolicy", env, verbose=1)
-model.learn(total_timesteps=100_000)
-```
-
----
-
-## Setup & Installation
-
-### Requirements
-
-```bash
-pip install gymnasium pygame torch numpy matplotlib scipy pandas
-```
-
-Or with Keras/TensorFlow instead of PyTorch:
-
-```bash
-pip install gymnasium pygame tensorflow numpy matplotlib scipy pandas
-```
-
-### First run
-
-Make sure these files are in the project root:
-- `race_track_ie.png`
-- `car.png`
-
-Then run either training script:
-
-```bash
-python Pyrace_RL_DQN.py      # Part 1
-python Pyrace_RL_DQN_v2.py   # Part 2
-```
-
----
-
-## Environment Summary
-
-| Env ID | File | Reward | States | Actions |
-|--------|------|--------|--------|---------|
-| `Pyrace-v1` | `RaceEnv` | Sparse | Integers 0–10 | 3 |
-| `Pyrace-v2` | `RaceEnvV2` | Dense | Floats 0.0–10.0 | 4 |
-
-**Actions:**
-- `0` — Accelerate (speed +2)
-- `1` — Turn Left (angle +5°)
-- `2` — Turn Right (angle -5°)
-- `3` — Brake (speed -2) ← new in v2
-
-**State (5 radar beams):**
-Radar distances measured at -90°, -45°, 0°, +45°, +90° relative to the car's heading.
-
----
-
-## Notes
-
-- Model files (`.pth`, `.npy`) are large and excluded from git via `.gitignore`
-- The `total_reward = 0` initialisation at the top of `simulate()` is important — without it `load_and_play()` crashes on the first episode
-- Training speed depends heavily on hardware — expect ~1,000 episodes per few minutes on CPU
+Hence, the biggest improvement came from environment design, not just the algorithm
